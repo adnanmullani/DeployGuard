@@ -80,7 +80,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 .output
 
 # Gatsby files
@@ -147,3 +146,4 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+preview.md
