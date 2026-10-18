@@ -45,7 +45,14 @@ export function renderComment(i: CommentInput): string {
     lines.push('### ↩️ Rollback plan', ...i.ai.rollback.map((r, n) => `${n + 1}. ${r}`), '');
   }
   if (i.fixCount) {
-    lines.push(`### 💡 ${i.fixCount} one-click fix${i.fixCount > 1 ? 'es' : ''}`, 'See the inline **Suggested change** comments in *Files changed*. Click **Commit suggestion** to apply.', '');
+    lines.push(
+      `### 💡 ${i.fixCount} one-click fix${i.fixCount > 1 ? 'es' : ''}`,
+      'See the inline **Suggested change** comments in *Files changed*.',
+      i.fixCount > 1
+        ? 'Tip: click **Add suggestion to batch** on each one, then **Commit suggestions** once to apply them all in a single commit.'
+        : 'Click **Commit suggestion** to apply it.',
+      '',
+    );
   }
   if (i.aiError) lines.push(`> ⚠️ AI review unavailable (${i.aiError}). Showing rule-based results only.`, '');
 
