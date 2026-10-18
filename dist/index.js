@@ -29931,6 +29931,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DEFAULT_MODELS = void 0;
 exports.buildPrompt = buildPrompt;
 exports.review = review;
+exports.post = post;
 exports.parseReview = parseReview;
 exports.DEFAULT_MODELS = {
     gemini: 'gemini-3.8-flash',
@@ -29971,15 +29972,24 @@ async function callProvider(provider, key, model, prompt) {
     });
     return res.choices?.[0]?.message?.content ?? '';
 }
-async function post(url, headers, body) {
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', ...headers },
-        body: JSON.stringify(body),
-    });
-    if (!res.ok)
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+const BACKOFF_MS = [2000, 6000];
+async function post(url, headers, body, delays = BACKOFF_MS) {
+    for (let attempt = 0;; attempt++) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', ...headers },
+            body: JSON.stringify(body),
+        });
+        if (res.ok)
+            return res.json();
+        // Providers return 429/503 during demand spikes; a short wait usually clears it.
+        if (RETRYABLE.has(res.status) && attempt < delays.length) {
+            await new Promise((r) => setTimeout(r, delays[attempt]));
+            continue;
+        }
         throw new Error(`AI request failed: ${res.status} ${(await res.text()).slice(0, 300)}`);
-    return res.json();
+    }
 }
 function parseReview(text) {
     const start = text.indexOf('{');
