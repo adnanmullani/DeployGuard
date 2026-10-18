@@ -4,6 +4,10 @@ AI powered GitHub Action that reviews Terraform, Kubernetes, Docker and pipeline
 
 **Rules catch it, AI explains it, the merge gate stops it.**
 
+![DeployGuard blocking a risky PR, then unlocking the merge after the fixes](assets/demo.gif)
+
+Watch it on a real PR: [DeployGuard-demo #6](https://github.com/adnanmullani/DeployGuard-demo/pull/6) (risky change flagged, merge blocked, fixes applied, merged).
+
 - Reads the real `terraform show -json` plan: what is created, updated, destroyed or **replaced**
 - Rule engine (no AI needed): public S3, `0.0.0.0/0`, IAM `*`, destroyed or replaced databases, privileged pods, `:latest` images, `pull_request_target`
 - AI layer: summary, blast radius and rollback plan (Gemini default, Claude and OpenAI supported)
@@ -85,6 +89,10 @@ Add the `DeployGuard` job as a required status check in branch protection and se
 
 `examples/` has intentionally risky Terraform, a matching `sample-plan.json` and a Kubernetes manifest. Open a PR that adds them to see a HIGH RISK comment.
 
+## How it compares
+
+Tools like Checkov, Trivy and tfsec scan for misconfigurations, and general AI reviewers such as CodeRabbit read all kinds of code. DeployGuard is narrower on purpose: it looks at what a change will do to a deployment (replace, destroy, expose), explains the blast radius and rollback in plain language, proposes one-click fixes for the safe cases, and can block the merge. It works well alongside a scanner.
+
 ## Privacy
 
 Only masked diffs of infra files and the plan summary are sent to the AI provider you choose. Nothing goes anywhere else.
@@ -105,3 +113,5 @@ Work on `feature/*` branches, merge to `main` by PR, then tag `v1.x.y` and move 
 ## License
 
 MIT
+
+Built with [Claude Code](https://claude.com/claude-code).
