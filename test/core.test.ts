@@ -142,3 +142,22 @@ describe('ai retry', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('ai timeout', () => {
+  it('fails fast with a clear message when the provider hangs', async () => {
+    const hang = vi.fn().mockRejectedValue(Object.assign(new Error('The operation timed out'), { name: 'TimeoutError' }));
+    vi.stubGlobal('fetch', hang);
+    await expect(post('http://x', {}, {}, [0, 0], 5000)).rejects.toThrow('timed out after 5s');
+    expect(hang).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+  it('passes an abort signal to fetch and retries a brief network error', async () => {
+    const ok = { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => '' };
+    const f = vi.fn().mockRejectedValueOnce(new TypeError('fetch failed')).mockResolvedValueOnce(ok);
+    vi.stubGlobal('fetch', f);
+    await expect(post('http://x', {}, {}, [0, 0])).resolves.toEqual({ ok: true });
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(f.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    vi.unstubAllGlobals();
+  });
+});

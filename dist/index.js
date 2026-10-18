@@ -29974,18 +29974,35 @@ async function callProvider(provider, key, model, prompt) {
 }
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 const BACKOFF_MS = [2000, 6000];
-async function post(url, headers, body, delays = BACKOFF_MS) {
+const TIMEOUT_MS = 60_000;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const isTimeout = (e) => e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');
+async function post(url, headers, body, delays = BACKOFF_MS, timeoutMs = TIMEOUT_MS) {
     for (let attempt = 0;; attempt++) {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', ...headers },
-            body: JSON.stringify(body),
-        });
+        let res;
+        try {
+            res = await fetch(url, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', ...headers },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(timeoutMs),
+            });
+        }
+        catch (e) {
+            // A hung provider must not hang the PR check: give up and let the rules-only result through.
+            if (isTimeout(e))
+                throw new Error(`AI request timed out after ${Math.round(timeoutMs / 1000)}s`);
+            if (attempt < delays.length) {
+                await wait(delays[attempt]); // brief network error, try again
+                continue;
+            }
+            throw e;
+        }
         if (res.ok)
             return res.json();
         // Providers return 429/503 during demand spikes; a short wait usually clears it.
         if (RETRYABLE.has(res.status) && attempt < delays.length) {
-            await new Promise((r) => setTimeout(r, delays[attempt]));
+            await wait(delays[attempt]);
             continue;
         }
         throw new Error(`AI request failed: ${res.status} ${(await res.text()).slice(0, 300)}`);
