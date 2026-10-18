@@ -23,6 +23,9 @@ inputs:
   fail-on:
     description: 'Fail the check at this risk level or above: high, medium or none.'
     default: 'high'
+  exclude:
+    description: 'Comma separated paths or globs to skip, e.g. `examples/,**/*.generated.tf`.'
+    required: false
   suggest-fixes:
     description: 'Post one-click Suggested change comments for simple, safe fixes.'
     default: 'true'

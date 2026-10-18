@@ -3,7 +3,7 @@ import { AiReview, Finding, Risk } from './types';
 export type Provider = 'gemini' | 'anthropic' | 'openai';
 
 export const DEFAULT_MODELS: Record<Provider, string> = {
-  gemini: 'gemini-2.5-flash',
+  gemini: 'gemini-3.8-flash',
   anthropic: 'claude-sonnet-5-5',
   openai: 'gpt-4o-mini',
 };

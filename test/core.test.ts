@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { describe, expect, it } from 'vitest';
 import { parseReview } from '../src/ai';
-import { classify, infraFiles } from '../src/files';
+import { classify, infraFiles, isExcluded } from '../src/files';
 import { maskSecrets } from '../src/mask';
 import { parsePlan } from '../src/plan';
 import { diffRules, suggestFixes } from '../src/linerules';
@@ -109,5 +109,14 @@ describe('suggested fixes', () => {
   it('fixes k8s and workflow settings', () => {
     expect(sug('d.yaml', 'kind: Pod\n  privileged: true')[0].replacement).toBe('  privileged: false');
     expect(sug('.github/workflows/a.yml', 'permissions: write-all')[0].replacement).toBe('permissions: read-all');
+  });
+});
+
+describe('exclude', () => {
+  it('skips folders and globs', () => {
+    expect(isExcluded('examples/a.tf', ['examples/'])).toBe(true);
+    expect(isExcluded('infra/x.generated.tf', ['**/*.generated.tf'])).toBe(true);
+    expect(isExcluded('infra/main.tf', ['examples/', '**/*.generated.tf'])).toBe(false);
+    expect(infraFiles([{ filename: 'examples/a.tf', status: 'added' }], ['examples/'])).toHaveLength(0);
   });
 });

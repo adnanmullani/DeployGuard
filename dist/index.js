@@ -29933,7 +29933,7 @@ exports.buildPrompt = buildPrompt;
 exports.review = review;
 exports.parseReview = parseReview;
 exports.DEFAULT_MODELS = {
-    gemini: 'gemini-2.5-flash',
+    gemini: 'gemini-3.8-flash',
     anthropic: 'claude-sonnet-5-5',
     openai: 'gpt-4o-mini',
 };
@@ -30058,6 +30058,7 @@ const order = (r) => ({ low: 0, medium: 1, high: 2 })[r];
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.classify = classify;
+exports.isExcluded = isExcluded;
 exports.infraFiles = infraFiles;
 exports.addedLines = addedLines;
 exports.addedLinesNumbered = addedLinesNumbered;
@@ -30075,8 +30076,26 @@ function classify(file) {
         return 'kubernetes';
     return 'other';
 }
-function infraFiles(files) {
+/** `*` stays inside a folder, `**` crosses folders, and a trailing `/` means a whole folder. */
+function isExcluded(path, patterns) {
+    return patterns.some((raw) => {
+        const p = raw.trim();
+        if (!p)
+            return false;
+        if (p.endsWith('/'))
+            return path.startsWith(p);
+        const DOUBLE = '\u0001';
+        const re = p
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+            .replace(/\*\*/g, DOUBLE)
+            .replace(/\*/g, '[^/]*')
+            .replace(new RegExp(DOUBLE, 'g'), '.*');
+        return new RegExp(`^${re}$`).test(path);
+    });
+}
+function infraFiles(files, exclude = []) {
     return files
+        .filter((f) => !isExcluded(f.filename, exclude))
         .map((f) => ({ ...f, kind: classify(f) }))
         .filter((f) => f.kind !== 'other' && f.status !== 'removed');
 }
@@ -30327,6 +30346,7 @@ async function run() {
     const model = core.getInput('model') || ai_1.DEFAULT_MODELS[provider];
     const failOn = (core.getInput('fail-on') || 'high').toLowerCase();
     const wantFixes = core.getInput('suggest-fixes') !== 'false';
+    const exclude = core.getInput('exclude').split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
     const maxChars = parseInt(core.getInput('max-diff-chars') || '30000', 10);
     if (!ai_1.DEFAULT_MODELS[provider])
         throw new Error(`Unknown ai-provider "${provider}"`);
@@ -30342,7 +30362,7 @@ async function run() {
     const all = (await octokit.paginate(octokit.rest.pulls.listFiles, {
         owner, repo, pull_number: pr.number, per_page: 100,
     }));
-    const files = (0, files_1.infraFiles)(all);
+    const files = (0, files_1.infraFiles)(all, exclude);
     let plan = [];
     if (planFile)
         plan = (0, plan_1.parsePlan)((0, fs_1.readFileSync)(planFile, 'utf8'));

@@ -56,6 +56,7 @@ Without `api-key` it still runs, rules only.
 | `model` | provider default | Override the model |
 | `plan-file` | none | Path to `terraform show -json` output |
 | `fail-on` | `high` | `high`, `medium` or `none` |
+| `exclude` | none | Paths or globs to skip, e.g. `examples/,**/*.generated.tf` |
 | `suggest-fixes` | `true` | Post inline one-click fixes for simple issues |
 | `max-diff-chars` | `30000` | Cap on diff text sent to the AI |
 | `github-token` | `github.token` | Used to read the PR and post the comment |

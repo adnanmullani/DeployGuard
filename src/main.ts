@@ -19,6 +19,7 @@ async function run(): Promise<void> {
   const model = core.getInput('model') || DEFAULT_MODELS[provider];
   const failOn = (core.getInput('fail-on') || 'high').toLowerCase();
   const wantFixes = core.getInput('suggest-fixes') !== 'false';
+  const exclude = core.getInput('exclude').split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
   const maxChars = parseInt(core.getInput('max-diff-chars') || '30000', 10);
 
   if (!DEFAULT_MODELS[provider]) throw new Error(`Unknown ai-provider "${provider}"`);
@@ -35,7 +36,7 @@ async function run(): Promise<void> {
   const all = (await octokit.paginate(octokit.rest.pulls.listFiles, {
     owner, repo, pull_number: pr.number, per_page: 100,
   })) as ChangedFile[];
-  const files = infraFiles(all);
+  const files = infraFiles(all, exclude);
 
   let plan: PlanChange[] = [];
   if (planFile) plan = parsePlan(readFileSync(planFile, 'utf8'));

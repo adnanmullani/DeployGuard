@@ -14,8 +14,25 @@ export function classify(file: Pick<ChangedFile, 'filename' | 'patch'>): FileKin
   return 'other';
 }
 
-export function infraFiles(files: ChangedFile[]): (ChangedFile & { kind: FileKind })[] {
+/** `*` stays inside a folder, `**` crosses folders, and a trailing `/` means a whole folder. */
+export function isExcluded(path: string, patterns: string[]): boolean {
+  return patterns.some((raw) => {
+    const p = raw.trim();
+    if (!p) return false;
+    if (p.endsWith('/')) return path.startsWith(p);
+    const DOUBLE = '\u0001';
+    const re = p
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*\*/g, DOUBLE)
+      .replace(/\*/g, '[^/]*')
+      .replace(new RegExp(DOUBLE, 'g'), '.*');
+    return new RegExp(`^${re}$`).test(path);
+  });
+}
+
+export function infraFiles(files: ChangedFile[], exclude: string[] = []): (ChangedFile & { kind: FileKind })[] {
   return files
+    .filter((f) => !isExcluded(f.filename, exclude))
     .map((f) => ({ ...f, kind: classify(f) }))
     .filter((f) => f.kind !== 'other' && f.status !== 'removed');
 }
