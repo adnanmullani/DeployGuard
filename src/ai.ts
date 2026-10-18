@@ -63,14 +63,24 @@ async function callProvider(provider: Provider, key: string, model: string, prom
   return res.choices?.[0]?.message?.content ?? '';
 }
 
-async function post(url: string, headers: Record<string, string>, body: unknown): Promise<any> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...headers },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`AI request failed: ${res.status} ${(await res.text()).slice(0, 300)}`);
-  return res.json();
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+const BACKOFF_MS = [2000, 6000];
+
+export async function post(url: string, headers: Record<string, string>, body: unknown, delays = BACKOFF_MS): Promise<any> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return res.json();
+    // Providers return 429/503 during demand spikes; a short wait usually clears it.
+    if (RETRYABLE.has(res.status) && attempt < delays.length) {
+      await new Promise((r) => setTimeout(r, delays[attempt]));
+      continue;
+    }
+    throw new Error(`AI request failed: ${res.status} ${(await res.text()).slice(0, 300)}`);
+  }
 }
 
 export function parseReview(text: string): AiReview {

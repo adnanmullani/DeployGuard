@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
-import { describe, expect, it } from 'vitest';
-import { parseReview } from '../src/ai';
+import { describe, expect, it, vi } from 'vitest';
+import { parseReview, post } from '../src/ai';
 import { classify, infraFiles, isExcluded } from '../src/files';
 import { maskSecrets } from '../src/mask';
 import { parsePlan } from '../src/plan';
@@ -118,5 +118,27 @@ describe('exclude', () => {
     expect(isExcluded('infra/x.generated.tf', ['**/*.generated.tf'])).toBe(true);
     expect(isExcluded('infra/main.tf', ['examples/', '**/*.generated.tf'])).toBe(false);
     expect(infraFiles([{ filename: 'examples/a.tf', status: 'added' }], ['examples/'])).toHaveLength(0);
+  });
+});
+
+describe('ai retry', () => {
+  const res = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body, text: async () => JSON.stringify(body) });
+
+  it('retries a 503 and then succeeds', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(res(503, {})).mockResolvedValueOnce(res(200, { ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(post('http://x', {}, {}, [0, 0])).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it('gives up after the retries and does not retry a 404', async () => {
+    const always503 = vi.fn().mockResolvedValue(res(503, {}));
+    vi.stubGlobal('fetch', always503);
+    await expect(post('http://x', {}, {}, [0, 0])).rejects.toThrow('503');
+    expect(always503).toHaveBeenCalledTimes(3);
+    const notFound = vi.fn().mockResolvedValue(res(404, {}));
+    vi.stubGlobal('fetch', notFound);
+    await expect(post('http://x', {}, {}, [0, 0])).rejects.toThrow('404');
+    expect(notFound).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 });
