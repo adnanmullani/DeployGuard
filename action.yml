@@ -1,4 +1,4 @@
-name: 'DeployGuard'
+name: 'DeployGuard Risk Review'
 description: 'AI powered reviewer that flags deployment risk in Terraform, Kubernetes, Docker and pipeline changes before merge.'
 author: 'Adnan Mullani'
 branding:
