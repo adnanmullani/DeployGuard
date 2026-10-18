@@ -1,0 +1,42 @@
+name: 'DeployGuard'
+description: 'AI powered reviewer that flags deployment risk in Terraform, Kubernetes, Docker and pipeline changes before merge.'
+author: 'Adnan Mullani'
+branding:
+  icon: 'shield'
+  color: 'blue'
+inputs:
+  github-token:
+    description: 'Token used to read the PR and post the comment.'
+    default: ${{ github.token }}
+  plan-file:
+    description: 'Path to `terraform show -json` output. Enables plan-based analysis.'
+    required: false
+  ai-provider:
+    description: 'gemini (default), anthropic or openai.'
+    default: 'gemini'
+  api-key:
+    description: 'API key for the AI provider. Without it DeployGuard runs rules only.'
+    required: false
+  model:
+    description: 'Override the default model of the provider.'
+    required: false
+  fail-on:
+    description: 'Fail the check at this risk level or above: high, medium or none.'
+    default: 'high'
+  exclude:
+    description: 'Comma separated paths or globs to skip, e.g. `examples/,**/*.generated.tf`.'
+    required: false
+  suggest-fixes:
+    description: 'Post one-click Suggested change comments for simple, safe fixes.'
+    default: 'true'
+  max-diff-chars:
+    description: 'Max characters of diff sent to the AI.'
+    default: '30000'
+outputs:
+  risk-level:
+    description: 'low, medium or high'
+  findings-count:
+    description: 'Number of findings'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

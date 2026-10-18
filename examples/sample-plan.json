@@ -1,0 +1,37 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "aws_db_instance.main",
+      "type": "aws_db_instance",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "engine": "postgres", "identifier": "app-db", "publicly_accessible": false },
+        "after": { "engine": "postgres", "identifier": "app-db-v2", "publicly_accessible": true, "storage_encrypted": false }
+      }
+    },
+    {
+      "address": "aws_security_group.web",
+      "type": "aws_security_group",
+      "change": {
+        "actions": ["update"],
+        "before": { "ingress": [{ "from_port": 443, "to_port": 443, "cidr_blocks": ["10.0.0.0/16"] }] },
+        "after": { "ingress": [{ "from_port": 22, "to_port": 22, "cidr_blocks": ["0.0.0.0/0"] }] }
+      }
+    },
+    {
+      "address": "aws_iam_policy.admin",
+      "type": "aws_iam_policy",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": { "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}" }
+      }
+    },
+    {
+      "address": "aws_s3_bucket.logs",
+      "type": "aws_s3_bucket",
+      "change": { "actions": ["no-op"], "before": {}, "after": {} }
+    }
+  ]
+}
