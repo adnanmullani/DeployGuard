@@ -25,6 +25,7 @@ export function renderSuggestion(s: Suggestion): string {
     '```',
     s.fixNote ? `> ${s.fixNote}` : '',
     '<sub>Click **Commit suggestion** to apply. Nothing changes until you do.</sub>',
+    '<sub>Need a different value? Click the **±** icon in the reply box to write your own suggestion, or edit the file directly.</sub>',
   ].join('\n');
 }
 
